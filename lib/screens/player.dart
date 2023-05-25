@@ -1,57 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-
+import 'package:mustest/model/audio_model.dart';
+import 'package:mustest/screens/common_widgets/playlist.dart';
+import '../model/playlist_item.dart';
 import 'common_widgets/player_buttons.dart';
 
-class Player extends StatefulWidget {
-  const Player({Key? key}) : super(key: key);
+class Player extends StatelessWidget {
+  final AudioPlayer _audioPlayer;
+  final List<PlaylistItem> _playlist;
 
-  @override
-  State<Player> createState() => _PlayerState();
-}
+   Player(this._audioPlayer,this._playlist,{Key? key}) : super(key: key){
+     if(!_audioPlayer.playing) _loadAudioSource(_playlist);
+   }
 
-class _PlayerState extends State<Player> {
-  late AudioPlayer _audioPlayer;
 
-  @override
-  void initState() {
-    super.initState();
-    _audioPlayer = AudioPlayer();
-
-    _audioPlayer
-        .setAudioSource(ConcatenatingAudioSource(children: [
-      AudioSource.uri(Uri.parse(
-          "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3")),
-      AudioSource.uri(Uri.parse(
-          "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3")),
-      AudioSource.uri(Uri.parse(
-          "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"))
-    ]))
-        .catchError((error) {
+  void _loadAudioSource(List<PlaylistItem> playlist) {
+    _audioPlayer.setAudioSource(
+      ConcatenatingAudioSource(
+        children: playlist
+            .map(
+              (e) => AudioSource.uri(
+                e.itemLocation,
+                tag: AudioMetadata(
+                    title: e.title, image: e.artworkUri.toString()),
+              ),
+            )
+            .toList(),
+      ),
+    ).catchError((error){
       print("An error occured $error");
     });
-  }
-
-  void getAudioSource() async {}
-
-
-
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: StreamBuilder<PlayerState>(
-          stream: _audioPlayer.playerStateStream,
-          builder: (context, snapshot){
-            final playerState = snapshot.data;
-            return PlayerButtons(_audioPlayer);
-          },
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(child: Playlist(_audioPlayer)),
+              PlayerButtons(_audioPlayer),
+            ],
+          )
         ),
       ),
     );
